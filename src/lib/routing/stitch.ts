@@ -13,10 +13,11 @@ const CELL_DEG = 0.002; // ~200 m at mid latitudes
  * z11 ≈ 350 m, z10 ≈ 700 m.
  */
 export function stitchMaxMForZoom(z: number): number {
-  if (z >= 13) return 30;
-  if (z === 12) return 120;
-  if (z === 11) return 350;
-  if (z === 10) return 700;
+  if (z >= 14) return 15;
+  if (z === 13) return 80;
+  if (z === 12) return 200;
+  if (z === 11) return 400;
+  if (z === 10) return 800;
   return 1200;
 }
 

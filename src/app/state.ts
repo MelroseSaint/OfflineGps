@@ -332,7 +332,7 @@ export async function planFromSelection(): Promise<void> {
     ? [s.origin.lng, s.origin.lat]
     : s.fix
       ? [s.fix.lng, s.fix.lat]
-      : mapCenter() ?? [-76.88, 40.26];
+      : [-76.88, 40.26]; // Harrisburg default — mapCenter is unreliable after map flies to dest
   appStore.set({
     routeDest: dest.name,
     origin: s.origin ?? null,
@@ -356,6 +356,13 @@ export async function planFromSelection(): Promise<void> {
 export function startNavigation(): void {
   const { route } = appStore.get();
   if (!route) return;
+  // Auto-start demo drive when no real GPS — lets the user see navigation
+  // working immediately on desktop/unsupported devices.
+  if (!appStore.get().fix) {
+    demoDrive.reset();
+    positioner.setProvider(demoDrive);
+    appStore.set({ demo: true });
+  }
   engine.setRoute(route);
   voice.reset();
   appStore.set({ navActive: true, arrived: false, camera: 'follow', panel: 'none' });
