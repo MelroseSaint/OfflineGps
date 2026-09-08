@@ -259,7 +259,11 @@ export default function MapCanvas(): ReactNode {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || s.camera !== 'follow') return;
-    map.easeTo({ pitch: s.threeD ? (s.navActive ? 50 : 55) : 0, duration: 600 });
+    map.easeTo({
+      pitch: s.threeD ? (s.navActive ? 52 : 58) : 0,
+      bearing: s.threeD ? map.getBearing() : 0,
+      duration: 700,
+    });
   }, [s.threeD, s.navActive, s.camera]);
 
   // Route geometry (deferred until the style is ready; also applied on load).
@@ -303,8 +307,8 @@ export default function MapCanvas(): ReactNode {
       map.easeTo({
         center: [fix.lng, fix.lat],
         bearing: fix.heading ?? (map.getBearing() as number),
-        pitch: s.threeD ? (s.navActive ? 50 : 55) : 0,
-        zoom: s.navActive ? 16.5 : 14.5,
+        pitch: s.threeD ? (s.navActive ? 52 : 58) : 0,
+        zoom: s.navActive ? 17 : 14.5,
         duration: 700,
         easing: (t) => t,
       });
@@ -342,7 +346,7 @@ export default function MapCanvas(): ReactNode {
         [Math.min(...lngs), Math.min(...lats)],
         [Math.max(...lngs), Math.max(...lats)],
       ],
-      { padding: 70, duration: 800, pitch: s.threeD ? 45 : 0 },
+      { padding: { top: 80, bottom: 100, left: 50, right: 50 }, duration: 900, pitch: s.threeD ? 52 : 0 },
     );
   }, [s.camera, s.route, s.threeD]);
 

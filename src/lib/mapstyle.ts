@@ -45,65 +45,65 @@ interface Palette {
 }
 
 const DAY: Palette = {
-  bg: '#eef0f3',
-  green: '#cdeab0',
-  water: '#a8d3f0',
-  waterway: '#a8d3f0',
-  building: '#e3e1dc',
-  rail: '#b6b2ab',
-  residential: '#e9e7e1',
-  motorway: '#f0955f',
-  motorwayCase: '#d67c46',
-  trunk: '#f3b76b',
-  trunkCase: '#d89a4e',
+  bg: '#f0f2f5',
+  green: '#c8e6b0',
+  water: '#aad4f0',
+  waterway: '#aad4f0',
+  building: '#e0ddd8',
+  rail: '#b0aaa2',
+  residential: '#eae8e2',
+  motorway: '#f29a52',
+  motorwayCase: '#d47c3c',
+  trunk: '#f5bc5e',
+  trunkCase: '#d89c42',
   primary: '#ffffff',
-  primaryCase: '#dedbd4',
+  primaryCase: '#d8d4cc',
   minor: '#ffffff',
-  minorCase: '#e4e2dd',
-  service: '#f6f5f2',
-  serviceCase: '#e8e6e1',
-  path: '#cfc9bf',
-  roadLabel: '#5f6b7a',
+  minorCase: '#ddd9d2',
+  service: '#f5f4f0',
+  serviceCase: '#e4e2dc',
+  path: '#cbc5b8',
+  roadLabel: '#555e6c',
   roadLabelHalo: '#ffffff',
-  place: '#3d4451',
+  place: '#2d3748',
   placeHalo: '#ffffff',
-  poi: '#6b7280',
+  poi: '#64748b',
   poiHalo: '#f4f3f0',
   shieldTextMotorway: '#ffffff',
-  shieldCaseMotorway: '#54769b',
-  shieldTextOther: '#4a5568',
+  shieldCaseMotorway: '#3b82f6',
+  shieldTextOther: '#475569',
   shieldCaseOther: '#ffffff',
 };
 
 const NIGHT: Palette = {
-  bg: '#141b26',
-  green: '#17281d',
-  water: '#102438',
-  waterway: '#102438',
-  building: '#1d2634',
-  rail: '#2a3342',
-  residential: '#181f2b',
-  motorway: '#a06a3f',
-  motorwayCase: '#7a5230',
-  trunk: '#8a6b45',
-  trunkCase: '#6b5334',
-  primary: '#4d586c',
-  primaryCase: '#384252',
-  minor: '#3a4353',
-  minorCase: '#2f3746',
-  service: '#333b4a',
-  serviceCase: '#2a3140',
-  path: '#3d4657',
-  roadLabel: '#8fa0b8',
-  roadLabelHalo: '#141b26',
-  place: '#b9c3d4',
-  placeHalo: '#141b26',
-  poi: '#7d8ba1',
-  poiHalo: '#141b26',
+  bg: '#111827',
+  green: '#15291d',
+  water: '#0c2035',
+  waterway: '#0c2035',
+  building: '#1e293b',
+  rail: '#334155',
+  residential: '#1a2332',
+  motorway: '#e8923f',
+  motorwayCase: '#c47a2a',
+  trunk: '#d4a64a',
+  trunkCase: '#b08a38',
+  primary: '#6b7fa0',
+  primaryCase: '#4a5c78',
+  minor: '#4b5970',
+  minorCase: '#3a4760',
+  service: '#404d63',
+  serviceCase: '#333f54',
+  path: '#4a5670',
+  roadLabel: '#94a3b8',
+  roadLabelHalo: '#111827',
+  place: '#cbd5e1',
+  placeHalo: '#111827',
+  poi: '#94a3b8',
+  poiHalo: '#111827',
   shieldTextMotorway: '#ffffff',
-  shieldCaseMotorway: '#3f628f',
-  shieldTextOther: '#cfd8e6',
-  shieldCaseOther: '#2c3547',
+  shieldCaseMotorway: '#2563eb',
+  shieldTextOther: '#e2e8f0',
+  shieldCaseOther: '#334155',
 };
 
 function widthExpr(): ExpressionSpecification {
@@ -111,13 +111,13 @@ function widthExpr(): ExpressionSpecification {
     'interpolate',
     ['exponential', 1.6],
     ['zoom'],
-    5, 0.5,
-    8, 1.0,
-    10, 1.6,
-    12, 2.6,
-    14, 4.5,
-    16, 8.5,
-    19, 16,
+    5, 0.6,
+    8, 1.2,
+    10, 1.8,
+    12, 3.0,
+    14, 5.0,
+    16, 9.0,
+    19, 17,
   ];
 }
 
@@ -131,11 +131,11 @@ function scale(e: ExpressionSpecification, k: number): ExpressionSpecification {
 }
 
 function serviceWidth(): ExpressionSpecification {
-  return ['interpolate', ['exponential', 1.6], ['zoom'], 14, 1.0, 16, 2.2, 19, 6];
+  return ['interpolate', ['exponential', 1.6], ['zoom'], 14, 1.2, 16, 2.5, 19, 7];
 }
 
 function pathWidth(): ExpressionSpecification {
-  return ['interpolate', ['linear'], ['zoom'], 13, 0.6, 18, 2];
+  return ['interpolate', ['linear'], ['zoom'], 13, 0.8, 18, 2.5];
 }
 
 /**
@@ -160,7 +160,7 @@ export function buildDrivingStyle(theme: MapTheme): StyleSpecification {
             : serviceWidth();
 
   const casingFor = (cls: 'minor' | 'service' | 'primary' | 'trunk' | 'motorway'): ExpressionSpecification =>
-    scale(widthFor(cls), 1.55);
+    scale(widthFor(cls), 1.6);
 
   const layoutLine = { 'line-cap': 'round', 'line-join': 'round' } as const;
 
@@ -217,8 +217,8 @@ export function buildDrivingStyle(theme: MapTheme): StyleSpecification {
       paint: {
         'fill-extrusion-color': p.building,
         'fill-extrusion-base': 0,
-        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], ['literal', 6]],
-        'fill-extrusion-opacity': 0.95,
+        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], ['literal', 8]],
+        'fill-extrusion-opacity': theme === 'night' ? 0.88 : 0.92,
         'fill-extrusion-vertical-gradient': true,
       },
     },
@@ -343,16 +343,17 @@ export function buildDrivingStyle(theme: MapTheme): StyleSpecification {
       type: 'symbol',
       source: 'planet',
       'source-layer': 'transportation_name',
-      minzoom: 13.5,
+      minzoom: 13,
       filter: ['has', 'name'],
       layout: {
         'symbol-placement': 'line',
         'text-field': ['get', 'name'],
         'text-font': ['Noto Sans Regular'],
-        'text-size': ['interpolate', ['linear'], ['zoom'], 13.5, 9, 16, 11.5, 19, 13],
-        'text-letter-spacing': 0.15,
+        'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9.5, 15, 11, 18, 13],
+        'text-letter-spacing': 0.12,
+        'text-padding': 4,
       },
-      paint: { 'text-color': p.roadLabel, 'text-halo-color': p.roadLabelHalo, 'text-halo-width': 2.2 },
+      paint: { 'text-color': p.roadLabel, 'text-halo-color': p.roadLabelHalo, 'text-halo-width': 2.5 },
     },
 
     // Route-number shields (bold ref on a class-colored halo badge)
@@ -361,7 +362,7 @@ export function buildDrivingStyle(theme: MapTheme): StyleSpecification {
       type: 'symbol',
       source: 'planet',
       'source-layer': 'transportation_name',
-      minzoom: 7,
+      minzoom: 6,
       filter: [
         'all',
         ['has', 'ref'],
@@ -370,13 +371,17 @@ export function buildDrivingStyle(theme: MapTheme): StyleSpecification {
       layout: {
         'text-field': ['get', 'ref'],
         'text-font': ['Noto Sans Bold'],
-        'text-size': 9.5,
-        'text-letter-spacing': 0.05,
+        'text-size': [
+          'interpolate', ['linear'], ['zoom'],
+          6, 8, 10, 10, 14, 12, 18, 14,
+        ],
+        'text-letter-spacing': 0.04,
+        'text-padding': 6,
       },
       paint: {
         'text-color': ['case', ['==', ['get', 'class'], 'motorway'], p.shieldTextMotorway, p.shieldTextOther],
         'text-halo-color': ['case', ['==', ['get', 'class'], 'motorway'], p.shieldCaseMotorway, p.shieldCaseOther],
-        'text-halo-width': 2.6,
+        'text-halo-width': 3,
       },
     },
 
