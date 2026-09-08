@@ -701,6 +701,12 @@ button.full { width: 100%; }
   color: #f5a623;
   font-style: italic;
 }
+.gps-hint {
+  padding: 6px 12px 2px 40px;
+  font-size: 11px;
+  color: #9aa0a6;
+  line-height: 1.3;
+}
 .fromto-dest .fromto-label {
   color: #3c4043;
 }

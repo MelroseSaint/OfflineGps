@@ -349,6 +349,14 @@ export function openSearchFor(pickTarget: 'dest' | 'origin'): void {
   appStore.set({ panel: 'search', pickTarget, search: { text: '', busy: false, results: [], degraded: false, searched: false } });
 }
 
+/** Set origin from a map tap — for devices without GPS. */
+export function setOriginFromMap(lng: number, lat: number): void {
+  appStore.set({
+    origin: { id: 'map-tap', name: 'Selected location', lat, lng, source: 'local' },
+  });
+  toast('Origin set from map. You can now plan a route.', 'success');
+}
+
 export async function planFromSelection(): Promise<void> {
   const s = appStore.get();
   const dest = s.selected;

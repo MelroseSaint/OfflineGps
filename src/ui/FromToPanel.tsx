@@ -10,6 +10,7 @@ export default function FromToPanel(): ReactNode {
   if (s.navActive) return null;
 
   // Show GPS status in the origin field when no fix is available yet.
+  const gpsUnavailable = !s.origin && !s.fix && (s.gpsStatus === 'denied' || s.gpsStatus === 'unavailable' || s.gpsStatus === 'error');
   const gpsLabel = !s.origin && !s.fix
     ? s.gpsStatus === 'requesting' ? 'Acquiring GPS…'
     : s.gpsStatus === 'denied' ? 'GPS denied — tap to set origin'
@@ -65,6 +66,11 @@ export default function FromToPanel(): ReactNode {
           </svg>
         </button>
       </div>
+      {gpsUnavailable && (
+        <div className="gps-hint">
+          GPS not available. Tap the map to set your location, or search for a starting point above.
+        </div>
+      )}
     </div>
   );
 }

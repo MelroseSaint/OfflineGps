@@ -5,7 +5,7 @@ import { TILE_PROTOCOL } from '../lib/tiles';
 import { tileProvider } from '../lib/cache/tileProvider';
 import { buildDrivingStyle, resolveTheme } from '../lib/mapstyle';
 import { settings } from '../lib/settings';
-import { appStore, setMapBoundsProvider, setMapCenterProvider, useStore } from '../app/state';
+import { appStore, setMapBoundsProvider, setMapCenterProvider, setOriginFromMap, useStore } from '../app/state';
 import type { AppState } from '../app/state';
 import type { Route } from '../lib/types';
 import type { FeatureCollection } from 'geojson';
@@ -221,6 +221,28 @@ export default function MapCanvas(): ReactNode {
 
       map.on('dragstart', () => {
         if (appStore.get().camera === 'follow') appStore.set({ camera: 'free' });
+      });
+
+      // Long-press on map sets origin — for devices without GPS.
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+      map.on('contextmenu', (e) => {
+        // Right-click or long-press (mobile) — set origin from map.
+        setOriginFromMap(e.lngLat.lng, e.lngLat.lat);
+      });
+      // Also handle touch hold for mobile long-press.
+      map.on('touchstart', (e) => {
+        if (e.originalEvent.touches.length !== 1) return;
+        longPressTimer = setTimeout(() => {
+          const touch = e.originalEvent.touches[0];
+          const point = map!.unproject([touch.clientX, touch.clientY]);
+          setOriginFromMap(point.lng, point.lat);
+        }, 800);
+      });
+      map.on('touchend', () => {
+        if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      });
+      map.on('touchmove', () => {
+        if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
       });
 
       setMapCenterProvider(() => {
