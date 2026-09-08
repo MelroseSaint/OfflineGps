@@ -85,9 +85,9 @@ export class DemoDrive implements FixProvider {
       heading = bearingDeg(pos, ahead);
       accuracy = 5 + Math.random() * 7;
     } else {
-      // Idle wander around the home point.
-      pos = destination(this.home, this.tick * 37, 20);
-      heading = this.tick * 37;
+      // Idle: stay at home point, no circular motion.
+      pos = this.home;
+      heading = 0;
       accuracy = 8;
     }
 

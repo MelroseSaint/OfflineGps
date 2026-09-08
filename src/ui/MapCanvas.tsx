@@ -301,12 +301,19 @@ export default function MapCanvas(): ReactNode {
         .addTo(map);
     } else if (fix) {
       puckRef.current.setLngLat([fix.lng, fix.lat]);
-      if (fix.heading != null) puckRef.current.setRotation(fix.heading);
+      // Only rotate puck when moving fast enough — prevents jitter at low speed
+      if (fix.heading != null && fix.speed != null && fix.speed > 2) {
+        puckRef.current.setRotation(fix.heading);
+      }
     }
     if (fix && s.camera === 'follow') {
+      // Only use heading when moving fast enough (>2 m/s ≈ 7 km/h).
+      // Below that, the compass is noisy and causes the map to spin.
+      const useHeading = fix.heading != null && fix.speed != null && fix.speed > 2;
+      const bearing = useHeading ? fix.heading! : (map.getBearing() as number);
       map.easeTo({
         center: [fix.lng, fix.lat],
-        bearing: fix.heading ?? (map.getBearing() as number),
+        bearing,
         pitch: s.threeD ? (s.navActive ? 52 : 58) : 0,
         zoom: s.navActive ? 17 : 14.5,
         duration: 700,

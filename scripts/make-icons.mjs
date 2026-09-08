@@ -97,7 +97,13 @@ function drawIcon(size, maskable) {
 mkdirSync(new URL('../public/icons', import.meta.url), { recursive: true });
 const out = (name, buf) =>
   writeFileSync(new URL(`../public/icons/${name}`, import.meta.url), buf);
+out('icon-72.png', drawIcon(72, false));
+out('icon-96.png', drawIcon(96, false));
+out('icon-128.png', drawIcon(128, false));
+out('icon-144.png', drawIcon(144, false));
+out('icon-152.png', drawIcon(152, false));
 out('icon-192.png', drawIcon(192, false));
+out('icon-384.png', drawIcon(384, false));
 out('icon-512.png', drawIcon(512, false));
 out('icon-maskable-512.png', drawIcon(512, true));
 out('apple-touch-icon.png', drawIcon(180, false));
