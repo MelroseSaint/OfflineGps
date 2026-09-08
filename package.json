@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Offline-first GPS navigation PWA with a Smart Offline Cache",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { appStore, clearRoute, setCamera, useStore } from '../app/state';
 import { formatDistance, formatDuration, formatEta } from '../lib/format';
 import { settings } from '../lib/settings';
@@ -56,6 +57,8 @@ function instructionText(step: { type: string; modifier?: ManeuverModifier; name
 export default function NavHud(): React.ReactNode | null {
   const s = useStore(appStore);
   const stg = useStore(settings.store);
+  const [confirmExit, setConfirmExit] = useState(false);
+
   if (!s.navActive || !s.route || !s.navSnap) return null;
   const snap = s.navSnap;
   const route = s.route;
@@ -118,51 +121,67 @@ export default function NavHud(): React.ReactNode | null {
           />
         </div>
         <div className="gms-bottom-row">
-          <div className="gms-remaining">
-            <span className="gms-time">{formatDuration(snap.remainingS)}</span>
-            <span className="gms-dist">{formatDistance(snap.remainingM, 'metric')}</span>
-          </div>
-          <div className="gms-eta">
-            <span className="gms-eta-time">{formatEta(snap.remainingS)}</span>
-            <span className="gms-eta-label">ETA</span>
-          </div>
-          <div className="gms-controls">
-            <button
-              className="gms-round"
-              onClick={() => settings.update({ voice: !stg.voice })}
-              title={stg.voice ? 'Mute voice guidance' : 'Unmute voice guidance'}
-            >
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path d="M4 9.5 L7.5 9.5 L12 5 L12 19 L7.5 14.5 L4 14.5 Z" fill="currentColor" />
-                {stg.voice ? (
-                  <>
-                    <path d="M15 9 C16.4 10.4 16.4 13.6 15 15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M17.5 6.8 C20.2 9.5 20.2 14.5 17.5 17.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </>
-                ) : (
-                  <>
-                    <line x1="15" y1="9" x2="21" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <line x1="21" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </>
-                )}
-              </svg>
-            </button>
-            <button className="gms-round" onClick={() => setCamera('overview')} title="Route overview">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path d="M4 18 L10 18 M14 18 L20 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="12" cy="9" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            </button>
-            <button className="gms-round" onClick={() => setCamera('follow')} title="Recenter">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <circle cx="12" cy="12" r="4" fill="currentColor" />
-                <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-              </svg>
-            </button>
-            <button className="gms-round gms-exit" onClick={clearRoute} title="Exit navigation">
-              ✕
-            </button>
-          </div>
+          {confirmExit ? (
+            <div style={{ display: 'flex', gap: '12px', width: '100%', justifyContent: 'flex-end', padding: '4px' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', color: '#fff', fontSize: '16px', fontWeight: 500 }}>
+                End navigation?
+              </div>
+              <button className="ghost" onClick={() => setConfirmExit(false)} style={{ padding: '8px 16px', borderRadius: '24px' }}>
+                Cancel
+              </button>
+              <button className="primary" onClick={() => { setConfirmExit(false); clearRoute(); }} style={{ padding: '8px 16px', borderRadius: '24px', background: '#ef4444', color: '#fff' }}>
+                End
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="gms-remaining">
+                <span className="gms-time">{formatDuration(snap.remainingS)}</span>
+                <span className="gms-dist">{formatDistance(snap.remainingM, 'metric')}</span>
+              </div>
+              <div className="gms-eta">
+                <span className="gms-eta-time">{formatEta(snap.remainingS)}</span>
+                <span className="gms-eta-label">ETA</span>
+              </div>
+              <div className="gms-controls">
+                <button
+                  className="gms-round"
+                  onClick={() => settings.update({ voice: !stg.voice })}
+                  title={stg.voice ? 'Mute voice guidance' : 'Unmute voice guidance'}
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path d="M4 9.5 L7.5 9.5 L12 5 L12 19 L7.5 14.5 L4 14.5 Z" fill="currentColor" />
+                    {stg.voice ? (
+                      <>
+                        <path d="M15 9 C16.4 10.4 16.4 13.6 15 15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                        <path d="M17.5 6.8 C20.2 9.5 20.2 14.5 17.5 17.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      </>
+                    ) : (
+                      <>
+                        <line x1="15" y1="9" x2="21" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                        <line x1="21" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+                <button className="gms-round" onClick={() => setCamera('overview')} title="Route overview">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path d="M4 18 L10 18 M14 18 L20 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <circle cx="12" cy="9" r="5.5" fill="none" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                </button>
+                <button className="gms-round" onClick={() => setCamera('follow')} title="Recenter">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="12" cy="12" r="4" fill="currentColor" />
+                    <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                  </svg>
+                </button>
+                <button className="gms-round gms-exit" onClick={() => setConfirmExit(true)} title="Exit navigation">
+                  ✕
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

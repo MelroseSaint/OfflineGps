@@ -37,7 +37,12 @@ export interface AppState {
     degraded: boolean;
     searched: boolean;
   };
+  searchMode: 'general' | 'origin' | 'dest';
   selected: SearchResult | null;
+  routeSetup: {
+    origin: SearchResult | 'current' | null;
+    dest: SearchResult | null;
+  } | null;
   routeDest: string | null;
   planning: { busy: boolean; phase: string; done: number; total: number; error?: string };
   route: Route | null;
@@ -66,7 +71,9 @@ export const appStore = new Store<AppState>({
   fix: null,
   gpsStale: true,
   search: { text: '', busy: false, results: [], degraded: false, searched: false },
+  searchMode: 'general',
   selected: null,
+  routeSetup: null,
   routeDest: null,
   planning: { busy: false, phase: '', done: 0, total: 0 },
   route: null,
@@ -284,29 +291,73 @@ export async function runSearch(text: string): Promise<void> {
   appStore.set((s) => ({ search: { ...s.search, busy: false, results, degraded, searched: true } }));
 }
 
-export function selectResult(r: SearchResult): void {
-  appStore.set({ selected: r, panel: 'none' });
+export function selectResult(r: SearchResult | 'current'): void {
+  const s = appStore.get();
+  if (s.searchMode === 'origin' && s.routeSetup) {
+    appStore.set({ routeSetup: { ...s.routeSetup, origin: r }, panel: 'none', searchMode: 'general', search: { ...s.search, text: '' } });
+  } else if (s.searchMode === 'dest' && s.routeSetup && r !== 'current') {
+    appStore.set({ routeSetup: { ...s.routeSetup, dest: r }, panel: 'none', searchMode: 'general', search: { ...s.search, text: '' } });
+  } else if (r !== 'current') {
+    appStore.set({ selected: r, panel: 'none', searchMode: 'general', search: { ...s.search, text: '' } });
+  }
 }
 
 export function clearSelection(): void {
   appStore.set({ selected: null });
 }
 
-export async function planFromSelection(): Promise<void> {
+export function enterRouteSetup(): void {
   const s = appStore.get();
-  const dest = s.selected;
-  if (!dest) return;
-  appStore.set({ routeDest: dest.name });
-  const origin: [number, number] = s.fix ? [s.fix.lng, s.fix.lat] : mapCenter() ?? [-76.88, 40.26];
-  appStore.set({ planning: { busy: true, phase: 'coarse', done: 0, total: 0 }, route: null, navSnap: null });
-  const r = await planRoute(origin as [number, number], [dest.lng, dest.lat], (p) => {
+  appStore.set({ 
+    routeSetup: { origin: 'current', dest: s.selected },
+    selected: null
+  });
+}
+
+export function closeRouteSetup(): void {
+  appStore.set({ routeSetup: null, selected: null, planning: { busy: false, phase: '', done: 0, total: 0 } });
+}
+
+export function swapRouteSetup(): void {
+  const s = appStore.get();
+  if (!s.routeSetup) return;
+  appStore.set({
+    routeSetup: { 
+      origin: s.routeSetup.dest ? s.routeSetup.dest : 'current', 
+      dest: s.routeSetup.origin === 'current' ? null : s.routeSetup.origin 
+    }
+  });
+}
+
+export async function planRouteFromSetup(): Promise<void> {
+  const s = appStore.get();
+  const setup = s.routeSetup;
+  if (!setup || !setup.dest) return;
+  
+  let originCoords: [number, number];
+  if (setup.origin === 'current') {
+    if (s.fix) {
+      originCoords = [s.fix.lng, s.fix.lat];
+    } else {
+      const mc = mapCenter();
+      originCoords = mc ?? [-76.88, 40.26];
+    }
+  } else if (setup.origin) {
+    originCoords = [setup.origin.lng, setup.origin.lat];
+  } else {
+    return;
+  }
+
+  appStore.set({ routeDest: setup.dest.name });
+  appStore.set({ planning: { busy: true, phase: 'coarse', done: 0, total: 0 }, route: null, navSnap: null, routeSetup: null });
+  const r = await planRoute(originCoords, [setup.dest.lng, setup.dest.lat], (p) => {
     appStore.set({ planning: { busy: true, phase: p.phase, done: p.done, total: p.total } });
   });
   if (r.ok) {
-    appStore.set({ route: r.route, planning: { busy: false, phase: 'done', done: 1, total: 1 }, selected: null });
+    appStore.set({ route: r.route, planning: { busy: false, phase: 'done', done: 1, total: 1 } });
     requestEviction();
   } else {
-    appStore.set({ planning: { busy: false, phase: '', done: 0, total: 0, error: r.error } });
+    appStore.set({ planning: { busy: false, phase: '', done: 0, total: 0, error: r.error }, routeSetup: setup });
     toast(r.error, 'error');
   }
 }

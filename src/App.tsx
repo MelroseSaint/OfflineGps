@@ -19,7 +19,7 @@ export default function App(): ReactNode {
     <div className="app">
       <MapCanvas />
       {!s.navActive && <StatusBar />}
-      {!s.route && !s.planning.busy && !s.navActive && s.panel === 'none' && (
+      {!s.route && !s.planning.busy && !s.routeSetup && !s.navActive && s.panel === 'none' && (
         <button className="gms-search-pill" onClick={() => openPanel('search')} aria-label="Search destination">
           <svg viewBox="0 0 24 24" width="22" height="22">
             <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.4" />
@@ -29,7 +29,7 @@ export default function App(): ReactNode {
         </button>
       )}
       {s.panel === 'search' && <SearchPanel />}
-      {(s.selected || s.route || s.planning.busy) && !s.navActive && <RouteSheet />}
+      {(s.selected || s.route || s.planning.busy || s.routeSetup) && !s.navActive && s.panel !== 'search' && <RouteSheet />}
       <NavHud />
       <SettingsDrawer />
       <Toasts />

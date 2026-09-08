@@ -21,7 +21,7 @@ export default function SearchPanel(): ReactNode {
         <input
           ref={inputRef}
           value={text}
-          placeholder="Where to?"
+          placeholder={s.searchMode === 'origin' ? 'Choose starting point' : 'Where to?'}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
         />
@@ -40,6 +40,13 @@ export default function SearchPanel(): ReactNode {
         <div className="search-hint warn">Online search unavailable — showing cached results only.</div>
       )}
       <div className="results">
+        {s.searchMode === 'origin' && (
+          <button className="result" onClick={() => selectResult('current')}>
+            <div className="result-main">
+              <span className="result-name" style={{ color: '#60a5fa' }}>Your location</span>
+            </div>
+          </button>
+        )}
         {s.search.results.map((r) => (
           <button key={r.id} className="result" onClick={() => selectResult(r)}>
             <div className="result-main">

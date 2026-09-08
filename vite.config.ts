@@ -18,7 +18,7 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: false,
       devOptions: {
-        enabled: true,
+        enabled: false,
         type: 'module',
       },
       manifest: {

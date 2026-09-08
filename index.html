@@ -1,6 +1,49 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Clear any sticky service workers that might be preventing updates
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister().then(function(success) {
+              if (success) {
+                console.log('Unregistered stale service worker.');
+                window.location.reload();
+              }
+            });
+          }
+        });
+      }
+    </script>
+    <script>
+      try {
+        const origDefineProperty = Object.defineProperty;
+        Object.defineProperty = function(obj, prop, descriptor) {
+          if (prop === 'fetch' && (obj === window || obj === globalThis)) {
+             if (descriptor && descriptor.get && !descriptor.set) {
+                descriptor.set = function(v) { 
+                  origDefineProperty(obj, prop, { value: v, writable: true, configurable: true, enumerable: true });
+                };
+                descriptor.configurable = true;
+             }
+          }
+          return origDefineProperty(obj, prop, descriptor);
+        };
+        const origDefineProperties = Object.defineProperties;
+        Object.defineProperties = function(obj, props) {
+          if (props && props.fetch && (obj === window || obj === globalThis)) {
+             if (props.fetch.get && !props.fetch.set) {
+                props.fetch.set = function(v) {
+                  origDefineProperty(obj, 'fetch', { value: v, writable: true, configurable: true, enumerable: true });
+                };
+                props.fetch.configurable = true;
+             }
+          }
+          return origDefineProperties(obj, props);
+        };
+      } catch (e) {}
+    </script>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
