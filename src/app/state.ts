@@ -37,17 +37,17 @@ export interface AppState {
     degraded: boolean;
     searched: boolean;
   };
-  searchMode: 'general' | 'origin' | 'dest';
+  /** Which endpoint the user is picking in the search panel. */
+  pickTarget: 'dest' | 'origin' | null;
   selected: SearchResult | null;
-  routeSetup: {
-    origin: SearchResult | 'current' | null;
-    dest: SearchResult | null;
-  } | null;
+  /** Custom origin chosen by user (null = 'My location'). */
+  origin: SearchResult | null;
   routeDest: string | null;
   planning: { busy: boolean; phase: string; done: number; total: number; error?: string };
   route: Route | null;
   navActive: boolean;
   navSnap: NavSnapshot | null;
+  arrived: boolean;
   camera: 'follow' | 'free' | 'overview';
   /** 3D view: pitched camera + building extrusions. */
   threeD: boolean;
@@ -71,14 +71,15 @@ export const appStore = new Store<AppState>({
   fix: null,
   gpsStale: true,
   search: { text: '', busy: false, results: [], degraded: false, searched: false },
-  searchMode: 'general',
+  pickTarget: null,
   selected: null,
-  routeSetup: null,
+  origin: null,
   routeDest: null,
   planning: { busy: false, phase: '', done: 0, total: 0 },
   route: null,
   navActive: false,
   navSnap: null,
+  arrived: false,
   camera: 'follow',
   threeD: true,
   panel: 'none',
@@ -123,8 +124,8 @@ const engine = new NavigationEngine({
     });
   },
   onArrived: () => {
+    appStore.set({ arrived: true });
     toast('You have arrived.', 'success');
-    stopNavigation();
   },
 });
 
@@ -275,6 +276,21 @@ export async function initApp(): Promise<void> {
     positioner.setProvider(demoDrive);
   }
 
+  // Dev/testing hook: lets external tooling (and the preview smoke tests)
+  // reach the *real* app instance instead of a shadow module import.
+  if (import.meta.env.DEV) {
+    (window as unknown as { __wayline?: unknown }).__wayline = {
+      appStore,
+      planFromSelection,
+      startNavigation,
+      stopNavigation,
+      rerouteLocal,
+      planRoute,
+      settings,
+      router,
+    };
+  }
+
   appStore.set({ ready: true });
 }
 
@@ -291,14 +307,12 @@ export async function runSearch(text: string): Promise<void> {
   appStore.set((s) => ({ search: { ...s.search, busy: false, results, degraded, searched: true } }));
 }
 
-export function selectResult(r: SearchResult | 'current'): void {
-  const s = appStore.get();
-  if (s.searchMode === 'origin' && s.routeSetup) {
-    appStore.set({ routeSetup: { ...s.routeSetup, origin: r }, panel: 'none', searchMode: 'general', search: { ...s.search, text: '' } });
-  } else if (s.searchMode === 'dest' && s.routeSetup && r !== 'current') {
-    appStore.set({ routeSetup: { ...s.routeSetup, dest: r }, panel: 'none', searchMode: 'general', search: { ...s.search, text: '' } });
-  } else if (r !== 'current') {
-    appStore.set({ selected: r, panel: 'none', searchMode: 'general', search: { ...s.search, text: '' } });
+export function selectResult(r: SearchResult): void {
+  const { pickTarget } = appStore.get();
+  if (pickTarget === 'origin') {
+    appStore.set({ origin: r, panel: 'none', pickTarget: null });
+  } else {
+    appStore.set({ selected: r, panel: 'none', pickTarget: null });
   }
 }
 
@@ -306,58 +320,35 @@ export function clearSelection(): void {
   appStore.set({ selected: null });
 }
 
-export function enterRouteSetup(): void {
-  const s = appStore.get();
-  appStore.set({ 
-    routeSetup: { origin: 'current', dest: s.selected },
-    selected: null
-  });
+export function openSearchFor(pickTarget: 'dest' | 'origin'): void {
+  appStore.set({ panel: 'search', pickTarget, search: { text: '', busy: false, results: [], degraded: false, searched: false } });
 }
 
-export function closeRouteSetup(): void {
-  appStore.set({ routeSetup: null, selected: null, planning: { busy: false, phase: '', done: 0, total: 0 } });
-}
-
-export function swapRouteSetup(): void {
+export async function planFromSelection(): Promise<void> {
   const s = appStore.get();
-  if (!s.routeSetup) return;
+  const dest = s.selected;
+  if (!dest) return;
+  const originPt: [number, number] = s.origin
+    ? [s.origin.lng, s.origin.lat]
+    : s.fix
+      ? [s.fix.lng, s.fix.lat]
+      : mapCenter() ?? [-76.88, 40.26];
   appStore.set({
-    routeSetup: { 
-      origin: s.routeSetup.dest ? s.routeSetup.dest : 'current', 
-      dest: s.routeSetup.origin === 'current' ? null : s.routeSetup.origin 
-    }
+    routeDest: dest.name,
+    origin: s.origin ?? null,
+    planning: { busy: true, phase: 'coarse', done: 0, total: 0 },
+    route: null,
+    navSnap: null,
+    arrived: false,
   });
-}
-
-export async function planRouteFromSetup(): Promise<void> {
-  const s = appStore.get();
-  const setup = s.routeSetup;
-  if (!setup || !setup.dest) return;
-  
-  let originCoords: [number, number];
-  if (setup.origin === 'current') {
-    if (s.fix) {
-      originCoords = [s.fix.lng, s.fix.lat];
-    } else {
-      const mc = mapCenter();
-      originCoords = mc ?? [-76.88, 40.26];
-    }
-  } else if (setup.origin) {
-    originCoords = [setup.origin.lng, setup.origin.lat];
-  } else {
-    return;
-  }
-
-  appStore.set({ routeDest: setup.dest.name });
-  appStore.set({ planning: { busy: true, phase: 'coarse', done: 0, total: 0 }, route: null, navSnap: null, routeSetup: null });
-  const r = await planRoute(originCoords, [setup.dest.lng, setup.dest.lat], (p) => {
+  const r = await planRoute(originPt, [dest.lng, dest.lat], (p) => {
     appStore.set({ planning: { busy: true, phase: p.phase, done: p.done, total: p.total } });
   });
   if (r.ok) {
     appStore.set({ route: r.route, planning: { busy: false, phase: 'done', done: 1, total: 1 } });
     requestEviction();
   } else {
-    appStore.set({ planning: { busy: false, phase: '', done: 0, total: 0, error: r.error }, routeSetup: setup });
+    appStore.set({ planning: { busy: false, phase: '', done: 0, total: 0, error: r.error } });
     toast(r.error, 'error');
   }
 }
@@ -367,24 +358,29 @@ export function startNavigation(): void {
   if (!route) return;
   engine.setRoute(route);
   voice.reset();
-  appStore.set({ navActive: true, camera: 'follow', panel: 'none' });
+  appStore.set({ navActive: true, arrived: false, camera: 'follow', panel: 'none' });
   prefetchPredictive(true);
 }
 
 export function stopNavigation(): void {
   engine.stop();
-  appStore.set({ navActive: false, navSnap: null, camera: 'free' });
+  voice.reset();
+  appStore.set({ navActive: false, navSnap: null, arrived: false, camera: 'free' });
   const { route } = appStore.get();
   if (route) cacheClient.unpin(`route-${route.createdAt}`);
 }
 
 export function clearRoute(): void {
   stopNavigation();
-  appStore.set({ route: null });
+  appStore.set({ route: null, selected: null, origin: null, routeDest: null });
 }
 
 export function setCamera(mode: AppState['camera']): void {
   appStore.set({ camera: mode });
+}
+
+export function recenter(): void {
+  appStore.set({ camera: 'follow' });
 }
 
 export function setThreeD(on: boolean): void {

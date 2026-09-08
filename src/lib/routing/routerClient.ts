@@ -71,13 +71,35 @@ class RouterClient {
   async route(origin: LngLat, dest: LngLat, snapMaxM?: number): Promise<RouteResult> {
     const id = this.nextId++;
     try {
-      const r = await this.request({ type: 'route', id, origin, dest, snapMaxM }, [], 30_000);
+      // Long-corridor A* (350+ km trips) can legitimately run past a minute
+      // in the worker; the UI shows "Rerouting…" meanwhile.
+      const r = await this.request({ type: 'route', id, origin, dest, snapMaxM }, [], 120_000);
       if (r.type === 'route') {
         return r.ok ? { ok: true, route: r.route } : { ok: false, reason: r.reason };
       }
       return { ok: false, reason: 'no-path' };
     } catch {
       return { ok: false, reason: 'no-path' };
+    }
+  }
+
+  /** Drop low-zoom (coarse) tiles from the worker graph, keeping those near a path. */
+  dropCoarse(maxZoom: number, keepNear?: LngLat[], keepRadiusM?: number): void {
+    if (!this.worker) return;
+    const id = this.nextId++;
+    void this.request({ type: 'drop-coarse', id, maxZoom, keepNear, keepRadiusM }, [], 30_000).catch(() => {});
+  }
+
+  /** Debug/diagnostic: worker graph size + optional component size near a point. */
+  async stats(near?: LngLat): Promise<{ liveEdges: number; nodes: number; component?: number } | null> {
+    if (!this.worker) return null;
+    const id = this.nextId++;
+    try {
+      const r = await this.request({ type: 'stats', id, near }, [], 30_000);
+      if (r.type === 'stats') return { liveEdges: r.liveEdges, nodes: r.nodes, component: r.component };
+      return null;
+    } catch {
+      return null;
     }
   }
 

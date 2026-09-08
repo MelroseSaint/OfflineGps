@@ -521,6 +521,271 @@ button.full { width: 100%; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* From/To panel */
+.fromto-panel {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.fromto-dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 14px 0 14px 12px;
+  width: 32px;
+  flex-shrink: 0;
+}
+.fromto-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.fromto-dot-origin {
+  background: #34a853;
+}
+.fromto-dot-dest {
+  background: #ea4335;
+}
+.fromto-line {
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
+  background: #dadce0;
+}
+.fromto-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.fromto-field {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: #3c4043;
+  cursor: pointer;
+  min-width: 0;
+  border-bottom: 1px solid #e8eaed;
+}
+.fromto-field:last-child {
+  border-bottom: none;
+}
+.fromto-field:active {
+  background: #f1f3f4;
+}
+.fromto-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.fromto-origin .fromto-label {
+  color: #5f6368;
+  font-size: 14px;
+}
+.fromto-dest .fromto-label {
+  color: #3c4043;
+}
+.fromto-dest .fromto-label:empty::before,
+.fromto-dest .fromto-label.placeholder {
+  color: #9aa0a6;
+}
+.fromto-actions {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.fromto-swap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #dadce0;
+  background: #ffffff;
+  color: #5f6368;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.fromto-swap:active {
+  background: #f1f3f4;
+}
+
+/* Settings FAB (top-right, always accessible) */
+.settings-fab {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  right: 12px;
+  z-index: 21;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #5f6368;
+  font-size: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.settings-fab:active {
+  background: #f1f3f4;
+}
+
+/* Recenter button */
+.recenter-btn {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
+  right: 12px;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #5f6368;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recenter-btn:active {
+  background: #f1f3f4;
+}
+
+/* Route preview from/to display */
+.route-preview-fromto {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--panel-2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.route-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+.route-preview-row:first-child {
+  border-bottom: 1px solid #263148;
+}
+.route-preview-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.route-preview-dot-origin {
+  background: #34a853;
+}
+.route-preview-dot-dest {
+  background: #ea4335;
+}
+.route-preview-text {
+  font-size: 14px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Search title */
+.search-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 2px 4px;
+}
+
+/* Arrival sheet */
+.arrived-sheet {
+  text-align: center;
+}
+.arrived-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #fff;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+}
+
+/* Nav HUD — prominent End button */
+.gms-end-btn {
+  background: #ea4335;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 56px;
+}
+.gms-end-btn:active {
+  background: #d93025;
+}
+
+/* Arrival banner */
+.gms-arrived {
+  background: #1e3a2a;
+}
+.gms-arrived .gms-turn-inst {
+  color: #86efac;
+}
+.gms-arrived-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gms-arrived-done {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gms-arrived-done:active {
+  background: #16a34a;
+}
+
 /* Demo panel */
 .demo-panel {
   position: absolute;

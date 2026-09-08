@@ -2,9 +2,23 @@ import { pointSegmentDistM, bearingDeg, angleDiff, type LngLat } from '../geo';
 import type { RoutingGraph } from './graph';
 import { findOrCreateNode } from './graph';
 
-const STITCH_MAX_M = 30;
 const STITCH_MIN_M = 0.5;
 const CELL_DEG = 0.002; // ~200 m at mid latitudes
+
+/**
+ * Max snap distance for stitching tile-border discontinuities.
+ * Planetiler clips ways at the tile edge *plus a buffer*, and at low zooms
+ * geometry simplification makes the two adjacent copies diverge, so the gap
+ * scales with tile size. Measured empirically: z13+ ≈ 30 m, z12 ≈ 120 m,
+ * z11 ≈ 350 m, z10 ≈ 700 m.
+ */
+export function stitchMaxMForZoom(z: number): number {
+  if (z >= 13) return 30;
+  if (z === 12) return 120;
+  if (z === 11) return 350;
+  if (z === 10) return 700;
+  return 1200;
+}
 
 interface SegRef {
   eid: number;
@@ -30,7 +44,7 @@ function edgePathCoords(g: RoutingGraph, eid: number): LngLat[] {
  * (close + roughly aligned), the target edge is split at the projection and
  * the dead end is connected to it.
  */
-export function stitchGraph(g: RoutingGraph): number {
+export function stitchGraph(g: RoutingGraph, maxStitchM = 30): number {
   // 1. Index all live segments.
   const grid = new Map<number, SegRef[]>();
   const cellOf = (lng: number, lat: number): number => {
@@ -54,11 +68,14 @@ export function stitchGraph(g: RoutingGraph): number {
     for (let i = 0; i < path.length - 1; i++) indexSeg(e.id, path[i], path[i + 1]);
   }
 
-  // 2. Dead-end nodes.
+  // 2. Dead-end nodes. Edges come in forward/reverse pairs, so a dead end
+  // (one incident road segment) has exactly 1 out + 1 in — directed degree 2.
+  // A pass-through vertex always has ≥2 segments (≥2 out + ≥2 in).
   const deadEnds: number[] = [];
   for (const n of g.nodes) {
-    const deg = n.out.length + n.in.length;
-    if (deg === 1) deadEnds.push(n.id);
+    if (n.out.length === 1 && n.in.length === 1 && n.out[0] !== n.in[0]) {
+      deadEnds.push(n.id);
+    }
   }
 
   // 3. Snap each dead end onto the best nearby segment.
@@ -66,7 +83,7 @@ export function stitchGraph(g: RoutingGraph): number {
   const R = 6371008.8;
   for (const nodeId of deadEnds) {
     const node = g.nodes[nodeId];
-    if (node.out.length + node.in.length !== 1) continue; // may have changed
+    if (node.out.length !== 1 || node.in.length !== 1 || node.out[0] === node.in[0]) continue; // may have changed
     const incident = new Set([...node.out, ...node.in]);
     const selfCls = g.edges[node.out[0] ?? node.in[0]].cls;
 
@@ -91,7 +108,7 @@ export function stitchGraph(g: RoutingGraph): number {
           const a: LngLat = [ref.ax, ref.ay];
           const b: LngLat = [ref.bx, ref.by];
           const dist = pointSegmentDistM(node.coord, a, b);
-          if (dist < STITCH_MIN_M || dist > STITCH_MAX_M) continue;
+          if (dist < STITCH_MIN_M || dist > maxStitchM) continue;
           if (best && dist >= best.distM) continue;
           // Projection parameter t along the segment.
           const px = node.coord[0] * 111_320 * Math.cos((node.coord[1] * Math.PI) / 180);
@@ -105,13 +122,19 @@ export function stitchGraph(g: RoutingGraph): number {
           const l2 = dx2 * dx2 + dy2 * dy2;
           let t = l2 === 0 ? 0 : ((px - ax) * dx2 + (py - ay) * dy2) / l2;
           t = Math.max(0.02, Math.min(0.98, t)); // keep away from segment ends
-          // Alignment: incident edge heading vs target segment heading.
+          // Alignment: direction of travel at the dead end vs target segment
+          // heading. (For out-edges ownPath[0] is the node; for in-edges the
+          // node is ownPath[last].)
           const ownPath = edgePathCoords(g, [...node.out, ...node.in][0]);
-          const ownBearing = bearingDeg(ownPath[1] ?? ownPath[0], ownPath[0]);
+          const ownBearing =
+            node.out.length > 0
+              ? bearingDeg(ownPath[0], ownPath[1] ?? ownPath[0])
+              : bearingDeg(ownPath[ownPath.length - 2] ?? ownPath[0], ownPath[ownPath.length - 1]);
           const targetBearing = bearingDeg(a, b);
-          if (Math.abs(angleDiff(ownBearing, targetBearing)) > 75 && Math.abs(angleDiff(ownBearing, targetBearing)) < 105) {
+          const align = Math.abs(angleDiff(ownBearing, targetBearing));
+          if (align > 75 && align < 105) {
             // perpendicular approach (e.g. driveway) — allow
-          } else if (Math.abs(angleDiff(ownBearing, targetBearing)) > 105) {
+          } else if (align > (maxStitchM > 60 ? 150 : 105)) {
             continue; // pointing away — not a continuation
           }
           best = {

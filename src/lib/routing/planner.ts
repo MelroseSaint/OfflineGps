@@ -85,20 +85,29 @@ export async function planRoute(
       onProgress?.({ phase: 'corridor', done, total }),
     );
     if (corridorData.size > 0) {
+      // Rebuild the worker graph from corridor + detail ONLY. The coarse
+      // graph was a throwaway scaffold: stitching the fine tiles alongside
+      // it makes border dead-ends snap onto simplified coarse edges, which
+      // leaves the fine web fragmented once the coarse edges are gone.
+      await router.reset();
       await router.load([...corridorData].map(([key, data]) => ({ key, data })));
       const fine = await router.route(origin, dest);
       if (fine.ok) route = fine.route;
+      // If the fine pass failed we still have the coarse route — better
+      // than nothing, and predictive prefetch will keep improving the graph.
     }
   }
 
   // ---- Pin route tiles + prefetch tiny overview tiles in background -------
+  // NOTE: overview tiles are cached + pinned for *rendering*, but are NOT
+  // loaded into the router worker — reloading tiles into the worker re-runs
+  // the stitch pass over the whole fine graph, and low-zoom edges shred
+  // corridor connectivity. The worker graph stays corridor + detail only.
   const routeId = `route-${route.createdAt}`;
   const pinKeys = corridorKeysForRoute(route);
   cacheClient.pin(pinKeys, routeId);
   const overviewKeys = overviewTilesForRoute(route.points).map((t) => tileKey(t));
-  void tileProvider.obtainMany(overviewKeys).then((m) => {
-    if (m.size > 0) void router.load([...m].map(([key, data]) => ({ key, data })));
-  });
+  void tileProvider.obtainMany(overviewKeys);
   cacheClient.pin(overviewKeys, routeId);
 
   onProgress?.({ phase: 'done', done: 1, total: 1 });

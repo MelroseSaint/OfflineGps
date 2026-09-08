@@ -6,9 +6,16 @@ export default function SearchPanel(): ReactNode {
   const [text, setText] = useState(s.search.text);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const pickTarget = s.pickTarget;
+  const title = pickTarget === 'origin' ? 'Choose starting point' : 'Where to?';
+  const placeholder = pickTarget === 'origin' ? 'Search origin…' : 'Search destination…';
+
   useEffect(() => {
-    if (s.panel === 'search') inputRef.current?.focus();
-  }, [s.panel]);
+    if (s.panel === 'search') {
+      setText('');
+      inputRef.current?.focus();
+    }
+  }, [s.panel, pickTarget]);
 
   const submit = (): void => {
     if (text.trim().length > 1) void runSearch(text.trim());
@@ -17,11 +24,12 @@ export default function SearchPanel(): ReactNode {
   return (
     <div className="sheet search-sheet">
       <div className="sheet-handle" />
+      <div className="search-title">{title}</div>
       <div className="search-row">
         <input
           ref={inputRef}
           value={text}
-          placeholder={s.searchMode === 'origin' ? 'Choose starting point' : 'Where to?'}
+          placeholder={placeholder}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
         />
@@ -40,13 +48,6 @@ export default function SearchPanel(): ReactNode {
         <div className="search-hint warn">Online search unavailable — showing cached results only.</div>
       )}
       <div className="results">
-        {s.searchMode === 'origin' && (
-          <button className="result" onClick={() => selectResult('current')}>
-            <div className="result-main">
-              <span className="result-name" style={{ color: '#60a5fa' }}>Your location</span>
-            </div>
-          </button>
-        )}
         {s.search.results.map((r) => (
           <button key={r.id} className="result" onClick={() => selectResult(r)}>
             <div className="result-main">

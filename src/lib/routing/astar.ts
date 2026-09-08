@@ -71,7 +71,7 @@ export function findPath(
   g: RoutingGraph,
   start: number,
   goal: number,
-  maxPops = 1_500_000,
+  maxPops = 9_000_000,
 ): RoutePath | null {
   const n = g.nodes.length;
   const gScore = new Float64Array(n).fill(Infinity);

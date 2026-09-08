@@ -53,6 +53,7 @@ function instructionText(step: { type: string; modifier?: ManeuverModifier; name
  *    with a "then …" secondary line for the following maneuver;
  *  - dark bottom bar with remaining time/distance (left) and ETA (right),
  *    a thin route progress bar, and circular controls bottom-right.
+ *  - prominent "End" button (bottom-left) always visible during navigation.
  */
 export default function NavHud(): React.ReactNode | null {
   const s = useStore(appStore);
@@ -65,7 +66,7 @@ export default function NavHud(): React.ReactNode | null {
   const step = route.steps[snap.nextStepIndex] ?? route.steps[route.steps.length - 1];
   const following = route.steps[snap.nextStepIndex + 1];
   const turnDist = snap.distToStepM;
-  const arrived = step?.type === 'arrive';
+  const arrived = step?.type === 'arrive' || s.arrived;
 
   return (
     <>
@@ -88,15 +89,28 @@ export default function NavHud(): React.ReactNode | null {
           )}
         </div>
       )}
+
+      {/* Arrival banner */}
       {arrived && (
-        <div className="gms-banner">
+        <div className="gms-banner gms-arrived">
           <div className="gms-banner-main">
+            <div className="gms-arrived-icon">✓</div>
             <div className="gms-banner-text">
-              <div className="gms-turn-inst">Arriving at your destination</div>
+              <div className="gms-turn-inst">You have arrived</div>
+              <div className="gms-banner-sub">
+                {s.routeDest ?? 'Destination'}
+              </div>
             </div>
+          </div>
+          <div className="gms-banner-then">
+            <button className="gms-arrived-done" onClick={clearRoute}>
+              Done
+            </button>
           </div>
         </div>
       )}
+
+      {/* Off-route / rerouting */}
       {snap.offRoute && (
         <div className="gms-banner gms-rerouting">
           <div className="gms-banner-main">
@@ -135,6 +149,9 @@ export default function NavHud(): React.ReactNode | null {
             </div>
           ) : (
             <>
+              <button className="gms-end-btn" onClick={() => setConfirmExit(true)} title="End navigation">
+                End
+              </button>
               <div className="gms-remaining">
                 <span className="gms-time">{formatDuration(snap.remainingS)}</span>
                 <span className="gms-dist">{formatDistance(snap.remainingM, 'metric')}</span>
@@ -175,9 +192,6 @@ export default function NavHud(): React.ReactNode | null {
                     <circle cx="12" cy="12" r="4" fill="currentColor" />
                     <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
                   </svg>
-                </button>
-                <button className="gms-round gms-exit" onClick={() => setConfirmExit(true)} title="Exit navigation">
-                  ✕
                 </button>
               </div>
             </>
