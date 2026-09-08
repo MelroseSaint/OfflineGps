@@ -64,9 +64,9 @@ export async function planRoute(
   const coarseResult = await router.route(origin, dest);
   if (!coarseResult.ok) {
     const reasons: Record<string, string> = {
-      'no-origin': 'No roads found near your location in the downloaded data.',
-      'no-destination': 'No roads found near the destination. Is it reachable by car?',
-      'no-path': 'No drivable route found between these points.',
+      'no-origin': 'No roads found near your location. Make sure GPS is working, or choose a starting point from the map.',
+      'no-destination': 'No roads found near the destination. Try a different destination or check that the area has road data.',
+      'no-path': 'No drivable route found. The road network may not connect these points by car.',
     };
     return { ok: false, error: reasons[coarseResult.reason] ?? 'Routing failed.' };
   }

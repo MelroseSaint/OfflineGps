@@ -50,11 +50,17 @@ export const systemGpsProvider: FixProvider = (() => {
       onStatusRef?.('unavailable', 'Geolocation is not supported by this device.');
       return;
     }
-    // Check cached permission first — avoids re-prompting.
-    const perm = await checkPermission();
-    if (perm === 'denied') {
-      onStatusRef?.('denied', 'Location permission denied.');
-      return;
+    // Check cached permission — but don't block on it. Many tablets/browsers
+    // have location enabled but the Permissions API throws or returns 'prompt'
+    // even after granting. Just call watchPosition directly.
+    try {
+      const perm = await checkPermission();
+      if (perm === 'denied') {
+        onStatusRef?.('denied', 'Location permission denied.');
+        return;
+      }
+    } catch {
+      // Permissions API failed — proceed to watchPosition anyway.
     }
     onStatusRef?.('requesting');
     watchId = navigator.geolocation.watchPosition(

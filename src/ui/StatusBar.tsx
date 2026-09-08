@@ -44,6 +44,12 @@ export default function StatusBar(): ReactNode {
               : 'GPS…'}
       </div>
       {fix?.speed != null && <div className="chip chip-plain">{formatSpeed(fix.speed, 'metric')}</div>}
+      {s.downloading && s.downloading.total > 0 && (
+        <div className="chip chip-blue" title={`Downloading map data: ${s.downloading.done}/${s.downloading.total} tiles`}>
+          <span className="dot" />
+          Downloading… {Math.round((s.downloading.done / s.downloading.total) * 100)}%
+        </div>
+      )}
       {s.cache.pressure !== 'ok' && (
         <div className="chip chip-red" title="Smart cache is near its storage limit">
           {s.cache.pressure === 'critical' ? 'Storage full' : 'Storage high'}

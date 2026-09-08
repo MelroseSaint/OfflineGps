@@ -44,6 +44,8 @@ export interface AppState {
   origin: SearchResult | null;
   routeDest: string | null;
   planning: { busy: boolean; phase: string; done: number; total: number; error?: string };
+  /** Background tile download progress (predictive cache, overview tiles). */
+  downloading: { phase: string; done: number; total: number } | null;
   route: Route | null;
   navActive: boolean;
   navSnap: NavSnapshot | null;
@@ -76,6 +78,7 @@ export const appStore = new Store<AppState>({
   origin: null,
   routeDest: null,
   planning: { busy: false, phase: '', done: 0, total: 0 },
+  downloading: null,
   route: null,
   navActive: false,
   navSnap: null,
@@ -189,7 +192,9 @@ async function refreshUsage(): Promise<void> {
 
 cacheClient.onEvent((e: CacheEvent) => {
   if (e.type === 'prefetch-progress') {
-    appStore.set((s) => ({ planning: s.planning.busy ? s.planning : s.planning }));
+    appStore.set({ downloading: { phase: e.phase, done: e.done, total: e.total } });
+  } else if (e.type === 'prefetch-done') {
+    appStore.set({ downloading: null });
   } else if (e.type === 'evicted') {
     void refreshUsage();
   } else if (e.type === 'cleared') {

@@ -162,7 +162,7 @@ self.onmessage = (ev: MessageEvent<RouterRequest>) => {
     (self as unknown as Worker).postMessage(reply);
   } else if (msg.type === 'route') {
     const idx = (nodeIndex ??= new NodeIndex(graph));
-    const snapMax = msg.snapMaxM ?? 3000;
+    const snapMax = msg.snapMaxM ?? 5000;
     const o = idx.nearest(msg.origin, snapMax);
     const d = idx.nearest(msg.dest, snapMax);
     if (!o) {
