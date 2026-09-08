@@ -381,6 +381,9 @@ export async function planFromSelection(): Promise<void> {
 export function startNavigation(): void {
   const { route, gpsStatus } = appStore.get();
   if (!route) return;
+  // Unlock speech synthesis — must happen inside a user gesture (tap/click)
+  // for iOS/Safari and some Android browsers to allow audio output.
+  voice.unlock();
   // If GPS is denied or unavailable, warn the user but still start
   // (they can still see the route and manual navigation info).
   if (gpsStatus === 'denied') {
@@ -392,6 +395,8 @@ export function startNavigation(): void {
   voice.reset();
   appStore.set({ navActive: true, arrived: false, camera: 'follow', panel: 'none' });
   prefetchPredictive(true);
+  // Announce start of navigation so user knows voice is working.
+  voice.speak('Navigation started.');
 }
 
 export function stopNavigation(): void {

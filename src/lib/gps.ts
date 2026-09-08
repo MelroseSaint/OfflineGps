@@ -25,10 +25,35 @@ export const systemGpsProvider: FixProvider = (() => {
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let onFixRef: ((f: Fix) => void) | null = null;
   let onStatusRef: ((s: GpsStatus, msg?: string) => void) | null = null;
+  // Cache permission state so we don't re-prompt on page reload.
+  let cachedPermission: 'granted' | 'denied' | 'prompt' | null = null;
 
-  function startWatch() {
+  async function checkPermission(): Promise<'granted' | 'denied' | 'prompt'> {
+    // Check Permissions API first (Chrome/Edge/Android).
+    if (cachedPermission) return cachedPermission;
+    if ('permissions' in navigator) {
+      try {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        cachedPermission = result.state as 'granted' | 'denied' | 'prompt';
+        // Listen for changes (e.g., user grants in settings).
+        result.addEventListener('change', () => {
+          cachedPermission = result.state as 'granted' | 'denied' | 'prompt';
+        });
+        return cachedPermission;
+      } catch { /* Permissions API not fully supported — fall through */ }
+    }
+    return 'prompt';
+  }
+
+  async function startWatch() {
     if (!('geolocation' in navigator)) {
       onStatusRef?.('unavailable', 'Geolocation is not supported by this device.');
+      return;
+    }
+    // Check cached permission first — avoids re-prompting.
+    const perm = await checkPermission();
+    if (perm === 'denied') {
+      onStatusRef?.('denied', 'Location permission denied.');
       return;
     }
     onStatusRef?.('requesting');
@@ -82,7 +107,7 @@ export const systemGpsProvider: FixProvider = (() => {
     start(onFix, onStatus) {
       onFixRef = onFix;
       onStatusRef = onStatus;
-      startWatch();
+      void startWatch();
     },
     stop() {
       if (watchId != null) navigator.geolocation.clearWatch(watchId);

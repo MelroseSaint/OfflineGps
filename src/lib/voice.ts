@@ -86,6 +86,20 @@ class VoiceGuidance {
       // Speech synthesis unavailable — silent degradation is fine.
     }
   }
+
+  /**
+   * Unlock speech synthesis — must be called from a user gesture (click/tap)
+   * before any utterances will be heard on iOS/Safari and some Android browsers.
+   */
+  unlock(): void {
+    if (typeof speechSynthesis === 'undefined') return;
+    try {
+      // Speak an empty utterance to unlock audio context.
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    } catch { /* ok */ }
+  }
 }
 
 function spokenInstruction(step: { type: string; modifier?: string; name: string }): string {
