@@ -9,7 +9,14 @@ export default function FromToPanel(): ReactNode {
   const s = useStore(appStore);
   if (s.navActive) return null;
 
-  const originLabel = s.origin?.name ?? 'My location';
+  // Show GPS status in the origin field when no fix is available yet.
+  const gpsLabel = !s.origin && !s.fix
+    ? s.gpsStatus === 'requesting' ? 'Acquiring GPS…'
+    : s.gpsStatus === 'denied' ? 'GPS denied — tap to set origin'
+    : s.gpsStatus === 'unavailable' ? 'No GPS — tap to set origin'
+    : 'Waiting for GPS…'
+    : null;
+  const originLabel = s.origin?.name ?? gpsLabel ?? 'My location';
   const destLabel = s.selected?.name ?? '';
 
   // Show the panel when the user has selected a destination or is actively
@@ -31,7 +38,7 @@ export default function FromToPanel(): ReactNode {
           className="fromto-field fromto-origin"
           onClick={() => openSearchFor('origin')}
         >
-          <span className="fromto-label">{originLabel}</span>
+          <span className={`fromto-label${gpsLabel ? ' gps-waiting' : ''}`}>{originLabel}</span>
         </button>
         <button
           className="fromto-field fromto-dest"

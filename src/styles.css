@@ -598,6 +598,10 @@ button.full { width: 100%; }
   color: #5f6368;
   font-size: 14px;
 }
+.fromto-origin .fromto-label.gps-waiting {
+  color: #f5a623;
+  font-style: italic;
+}
 .fromto-dest .fromto-label {
   color: #3c4043;
 }

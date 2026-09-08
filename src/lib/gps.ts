@@ -22,49 +22,75 @@ export interface FixProvider {
 export const systemGpsProvider: FixProvider = (() => {
   let watchId: number | null = null;
   let last: Fix | null = null;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let onFixRef: ((f: Fix) => void) | null = null;
+  let onStatusRef: ((s: GpsStatus, msg?: string) => void) | null = null;
+
+  function startWatch() {
+    if (!('geolocation' in navigator)) {
+      onStatusRef?.('unavailable', 'Geolocation is not supported by this device.');
+      return;
+    }
+    onStatusRef?.('requesting');
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+        const f: Fix = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy ?? 50,
+          speed: pos.coords.speed ?? null,
+          heading: pos.coords.heading ?? null,
+          ts: pos.timestamp,
+        };
+        // Course over ground when the device does not supply heading.
+        if (f.heading == null && f.speed != null && f.speed > 1.5 && last) {
+          const dLat = f.lat - last.lat;
+          const dLng = (f.lng - last.lng) / Math.max(0.2, Math.cos((f.lat * Math.PI) / 180));
+          if (dLat !== 0 || dLng !== 0) {
+            f.heading = ((Math.atan2(dLng, dLat) * 180) / Math.PI + 360) % 360;
+          }
+        }
+        last = f;
+        onFixRef?.(f);
+        onStatusRef?.('ok');
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          onStatusRef?.('denied', 'Location permission denied.');
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          onStatusRef?.('unavailable', 'GPS position unavailable.');
+        } else if (err.code === err.TIMEOUT) {
+          // Timeout — retry automatically after a short delay.
+          onStatusRef?.('requesting', 'GPS timeout — retrying…');
+          retryTimer = setTimeout(() => {
+            if (watchId != null) {
+              navigator.geolocation.clearWatch(watchId);
+              watchId = null;
+            }
+            startWatch();
+          }, 3000);
+        } else {
+          onStatusRef?.('error', err.message);
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+  }
+
   return {
     start(onFix, onStatus) {
-      if (!('geolocation' in navigator)) {
-        onStatus('unavailable', 'Geolocation is not supported by this device.');
-        return;
-      }
-      onStatus('requesting');
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          const f: Fix = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy ?? 50,
-            speed: pos.coords.speed ?? null,
-            heading: pos.coords.heading ?? null,
-            ts: pos.timestamp,
-          };
-          // Course over ground when the device does not supply heading.
-          if (f.heading == null && f.speed != null && f.speed > 1.5 && last) {
-            const dLat = f.lat - last.lat;
-            const dLng = (f.lng - last.lng) / Math.max(0.2, Math.cos((f.lat * Math.PI) / 180));
-            if (dLat !== 0 || dLng !== 0) {
-              f.heading = ((Math.atan2(dLng, dLat) * 180) / Math.PI + 360) % 360;
-            }
-          }
-          last = f;
-          onFix(f);
-          onStatus('ok');
-        },
-        (err) => {
-          if (err.code === err.PERMISSION_DENIED) onStatus('denied', 'Location permission denied.');
-          else if (err.code === err.POSITION_UNAVAILABLE)
-            onStatus('unavailable', 'GPS position unavailable.');
-          else if (err.code === err.TIMEOUT) onStatus('error', 'GPS timeout — searching…');
-          else onStatus('error', err.message);
-        },
-        { enableHighAccuracy: true, maximumAge: 1500, timeout: 20000 },
-      );
+      onFixRef = onFix;
+      onStatusRef = onStatus;
+      startWatch();
     },
     stop() {
       if (watchId != null) navigator.geolocation.clearWatch(watchId);
       watchId = null;
       last = null;
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      onFixRef = null;
+      onStatusRef = null;
     },
   };
 })();

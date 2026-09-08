@@ -348,11 +348,16 @@ export async function planFromSelection(): Promise<void> {
   const s = appStore.get();
   const dest = s.selected;
   if (!dest) return;
-  const originPt: [number, number] = s.origin
+  const originPt: [number, number] | null = s.origin
     ? [s.origin.lng, s.origin.lat]
     : s.fix
       ? [s.fix.lng, s.fix.lat]
-      : [-76.88, 40.26]; // Harrisburg default — mapCenter is unreliable after map flies to dest
+      : null;
+  if (!originPt) {
+    // No GPS fix and no explicit origin — tell the user to wait or pick one.
+    toast('Waiting for GPS. Grant location permission and wait for a fix, or tap "My location" to choose a starting point.', 'warn');
+    return;
+  }
   appStore.set({
     routeDest: dest.name,
     origin: s.origin ?? null,
