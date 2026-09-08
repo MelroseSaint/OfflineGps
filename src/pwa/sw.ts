@@ -35,7 +35,16 @@ self.addEventListener('activate', (event: ExtendableEvent) => {
       for (const key of await caches.keys()) {
         if (key !== SHELL && key !== RUNTIME) await caches.delete(key);
       }
-      await clientsClaim();
+      // clientsClaim() can cause issues on Silk browser (Amazon Fire).
+      // Only call it if available and not on Silk.
+      try {
+        const isSilk = typeof navigator !== 'undefined' && navigator.userAgent.includes('Silk/');
+        if (!isSilk && 'clients' in self) {
+          await self.clients.claim();
+        }
+      } catch {
+        // Ignore — SW will still work without claiming.
+      }
     })(),
   );
 });

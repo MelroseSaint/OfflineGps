@@ -63,6 +63,16 @@ export const systemGpsProvider: FixProvider = (() => {
       // Permissions API failed — proceed to watchPosition anyway.
     }
     onStatusRef?.('requesting');
+    // Detect Silk browser (Amazon Fire tablets) — it has quirks with
+    // enableHighAccuracy and shorter timeouts.
+    const isSilk = navigator.userAgent.includes('Silk/');
+    const geoOptions: PositionOptions = {
+      // enableHighAccuracy causes timeouts on Fire tablets — use false
+      // for broader compatibility. Real-world accuracy is still decent.
+      enableHighAccuracy: !isSilk,
+      maximumAge: isSilk ? 10000 : 5000,
+      timeout: isSilk ? 30000 : 15000,
+    };
     watchId = navigator.geolocation.watchPosition(
       (pos) => {
         if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
@@ -92,7 +102,7 @@ export const systemGpsProvider: FixProvider = (() => {
         } else if (err.code === err.POSITION_UNAVAILABLE) {
           onStatusRef?.('unavailable', 'GPS position unavailable.');
         } else if (err.code === err.TIMEOUT) {
-          // Timeout — retry automatically after a short delay.
+          // Timeout — retry automatically. Silk needs longer retry.
           onStatusRef?.('requesting', 'GPS timeout — retrying…');
           retryTimer = setTimeout(() => {
             if (watchId != null) {
@@ -100,12 +110,12 @@ export const systemGpsProvider: FixProvider = (() => {
               watchId = null;
             }
             startWatch();
-          }, 3000);
+          }, isSilk ? 5000 : 3000);
         } else {
           onStatusRef?.('error', err.message);
         }
       },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+      geoOptions,
     );
   }
 
