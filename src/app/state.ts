@@ -251,6 +251,7 @@ export async function initApp(): Promise<void> {
   net.start();
 
   // GPS → app store + navigation engine + predictive cache.
+  let gpsAnnounced = false;
   positioner.store.subscribe(() => {
     const g = positioner.store.get();
     appStore.set({
@@ -259,6 +260,17 @@ export async function initApp(): Promise<void> {
       gpsMessage: g.message,
       gpsStale: g.stale,
     });
+    // Announce GPS status once so the user knows what's happening.
+    if (!gpsAnnounced && g.status !== 'idle' && g.status !== 'requesting') {
+      gpsAnnounced = true;
+      if (g.status === 'ok') {
+        toast('GPS connected — your location is being tracked.', 'success');
+      } else if (g.status === 'denied') {
+        toast('Location permission denied. Enable it in browser settings for live navigation.', 'warn');
+      } else if (g.status === 'unavailable') {
+        toast('GPS not available on this device.', 'warn');
+      }
+    }
     if (g.fix && appStore.get().navActive) {
       const snap = engine.onFix(g.fix);
       appStore.set({ navSnap: snap });
@@ -271,6 +283,8 @@ export async function initApp(): Promise<void> {
   });
   positioner.start();
 
+  // Demo mode: only activate when ?demo=1 is in the URL.
+  // This replaces real GPS with a simulated drive for testing.
   if (appStore.get().demo) {
     demoDrive.reset();
     positioner.setProvider(demoDrive);
@@ -288,6 +302,12 @@ export async function initApp(): Promise<void> {
       planRoute,
       settings,
       router,
+      /** Activate demo drive for testing (replaces real GPS). */
+      startDemo() {
+        demoDrive.reset();
+        positioner.setProvider(demoDrive);
+        appStore.set({ demo: true });
+      },
     };
   }
 
@@ -354,14 +374,14 @@ export async function planFromSelection(): Promise<void> {
 }
 
 export function startNavigation(): void {
-  const { route } = appStore.get();
+  const { route, gpsStatus } = appStore.get();
   if (!route) return;
-  // Auto-start demo drive when no real GPS — lets the user see navigation
-  // working immediately on desktop/unsupported devices.
-  if (!appStore.get().fix) {
-    demoDrive.reset();
-    positioner.setProvider(demoDrive);
-    appStore.set({ demo: true });
+  // If GPS is denied or unavailable, warn the user but still start
+  // (they can still see the route and manual navigation info).
+  if (gpsStatus === 'denied') {
+    toast('Location permission is needed for live navigation. Grant it in your browser settings.', 'warn');
+  } else if (gpsStatus === 'unavailable') {
+    toast('GPS not available on this device. Navigation will show the route without live tracking.', 'warn');
   }
   engine.setRoute(route);
   voice.reset();

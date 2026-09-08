@@ -60,7 +60,48 @@ export default function NavHud(): React.ReactNode | null {
   const stg = useStore(settings.store);
   const [confirmExit, setConfirmExit] = useState(false);
 
-  if (!s.navActive || !s.route || !s.navSnap) return null;
+  if (!s.navActive || !s.route) return null;
+
+  // Waiting for GPS — show the bottom bar with End button so the user
+  // can still control navigation while GPS is acquiring a fix.
+  if (!s.navSnap) {
+    return (
+      <div className="gms-bottom">
+        <div className="gms-progress">
+          <div className="gms-progress-fill" style={{ width: '0%' }} />
+        </div>
+        <div className="gms-bottom-row">
+          {confirmExit ? (
+            <div style={{ display: 'flex', gap: '12px', width: '100%', justifyContent: 'flex-end', padding: '4px' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', color: '#fff', fontSize: '16px', fontWeight: 500 }}>
+                End navigation?
+              </div>
+              <button className="ghost" onClick={() => setConfirmExit(false)} style={{ padding: '8px 16px', borderRadius: '24px' }}>
+                Cancel
+              </button>
+              <button className="primary" onClick={() => { setConfirmExit(false); clearRoute(); }} style={{ padding: '8px 16px', borderRadius: '24px', background: '#ef4444', color: '#fff' }}>
+                End
+              </button>
+            </div>
+          ) : (
+            <>
+              <button className="gms-end-btn" onClick={() => setConfirmExit(true)} title="End navigation">
+                End
+              </button>
+              <div className="gms-remaining">
+                <span className="gms-time" style={{ fontSize: '14px', color: '#9aa0a6' }}>
+                  {s.gpsStatus === 'requesting' ? 'Acquiring GPS…'
+                    : s.gpsStatus === 'denied' ? 'GPS permission needed'
+                    : s.gpsStatus === 'unavailable' ? 'No GPS'
+                    : 'Waiting for position…'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
   const snap = s.navSnap;
   const route = s.route;
   const step = route.steps[snap.nextStepIndex] ?? route.steps[route.steps.length - 1];
