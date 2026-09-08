@@ -68,12 +68,12 @@ class RouterClient {
     }
   }
 
-  async route(origin: LngLat, dest: LngLat, snapMaxM?: number): Promise<RouteResult> {
+  async route(origin: LngLat, dest: LngLat, snapMaxM?: number, mode?: 'car' | 'bicycle' | 'foot'): Promise<RouteResult> {
     const id = this.nextId++;
     try {
       // Long-corridor A* (350+ km trips) can legitimately run past a minute
       // in the worker; the UI shows "Rerouting…" meanwhile.
-      const r = await this.request({ type: 'route', id, origin, dest, snapMaxM }, [], 120_000);
+      const r = await this.request({ type: 'route', id, origin, dest, snapMaxM, mode }, [], 120_000);
       if (r.type === 'route') {
         return r.ok ? { ok: true, route: r.route } : { ok: false, reason: r.reason };
       }

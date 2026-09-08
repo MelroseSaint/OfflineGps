@@ -1,6 +1,6 @@
 import { readMvt } from '../mvt/decode';
 import type { LngLat } from '../geo';
-import { addEdge, findOrCreateNode, makeGraph, isDrivable, type GraphEdge, type RoutingGraph } from './graph';
+import { addEdge, findOrCreateNode, makeGraph, isAccessible, type GraphEdge, type RoutingGraph } from './graph';
 import type { TileCoord } from '../tiles';
 import { tileToLngLatBounds } from '../tiles';
 
@@ -68,7 +68,8 @@ export function addTileToGraph(
     const props = feat.props;
     let cls = String(props.class ?? props.kind ?? '');
     if (cls === 'minor') cls = 'residential';
-    if (!cls || !isDrivable(cls)) continue;
+    // Include ALL road types — filter by transport mode at A* time.
+    if (!cls) continue;
 
     const oneway = parseOneway(props.oneway);
     const ramp = props.ramp === 1 || props.ramp === true ? (1 as const) : undefined;

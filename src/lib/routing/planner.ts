@@ -60,8 +60,9 @@ export async function planRoute(
   }
   await router.load([...coarseData].map(([key, data]) => ({ key, data })));
 
+  const mode = settings.get().transportMode;
   let route: Route;
-  const coarseResult = await router.route(origin, dest);
+  const coarseResult = await router.route(origin, dest, undefined, mode);
   if (!coarseResult.ok) {
     const reasons: Record<string, string> = {
       'no-origin': 'No roads found near your location. Make sure GPS is working, or choose a starting point from the map.',
@@ -91,7 +92,7 @@ export async function planRoute(
       // leaves the fine web fragmented once the coarse edges are gone.
       await router.reset();
       await router.load([...corridorData].map(([key, data]) => ({ key, data })));
-      const fine = await router.route(origin, dest);
+      const fine = await router.route(origin, dest, undefined, mode);
       if (fine.ok) route = fine.route;
       // If the fine pass failed we still have the coarse route — better
       // than nothing, and predictive prefetch will keep improving the graph.
@@ -136,5 +137,6 @@ export function overviewTilesForRoute(points: LngLat[]): TileCoord[] {
 
 /** Offline reroute: pure worker A* over the already-loaded corridor graph. */
 export function rerouteLocal(origin: LngLat, dest: LngLat): Promise<RouteResult> {
-  return router.route(origin, dest);
+  const mode = settings.get().transportMode;
+  return router.route(origin, dest, undefined, mode);
 }

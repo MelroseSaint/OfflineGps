@@ -5,6 +5,28 @@ export type PresetId = 'minimal' | 'balanced' | 'expanded' | 'custom';
 export type ManagedPreset = Exclude<PresetId, 'custom'>;
 export type Units = 'metric' | 'imperial';
 export type ThemeSetting = 'auto' | 'day' | 'night';
+export type TransportMode = 'car' | 'bicycle' | 'foot';
+
+export interface SavedPlace {
+  id: string;
+  label: string; // 'Home', 'Work', 'Gym', etc.
+  lat: number;
+  lng: number;
+  address?: string;
+}
+
+export interface SavedRoute {
+  id: string;
+  name: string;
+  originLabel: string;
+  destLabel: string;
+  originLng: number;
+  originLat: number;
+  destLng: number;
+  destLat: number;
+  mode: TransportMode;
+  savedAt: number;
+}
 
 export interface Settings {
   preset: PresetId;
@@ -26,11 +48,17 @@ export interface Settings {
   voice: boolean;
   /** Map appearance: auto follows local daytime. */
   mapTheme: ThemeSetting;
+  /** Current transport mode for routing. */
+  transportMode: TransportMode;
+  /** User-saved places (Home, Work, etc). */
+  savedPlaces: SavedPlace[];
+  /** User-saved routes. */
+  savedRoutes: SavedRoute[];
 }
 
 export const PRESETS: Record<
   ManagedPreset,
-  Omit<Settings, 'preset' | 'units' | 'geocodeOnline' | 'voice' | 'mapTheme'>
+  Omit<Settings, 'preset' | 'units' | 'geocodeOnline' | 'voice' | 'mapTheme' | 'transportMode' | 'savedPlaces' | 'savedRoutes'>
 > = {
   minimal: {
     budgetMB: 150,
@@ -68,6 +96,9 @@ export const DEFAULT_SETTINGS: Settings = {
   units: 'metric',
   voice: true,
   mapTheme: 'auto',
+  transportMode: 'car',
+  savedPlaces: [],
+  savedRoutes: [],
 };
 
 const SETTINGS_KEY = 'settings';

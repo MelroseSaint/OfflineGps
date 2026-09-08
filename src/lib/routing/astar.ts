@@ -1,5 +1,6 @@
 import { haversineM } from '../geo';
 import type { RoutingGraph } from './graph';
+import { isAccessible, CLASS_SPEED_KMH, MODE_SPEED_KMH } from './graph';
 
 export interface RoutePath {
   /** Node indices from start to goal. */
@@ -63,15 +64,19 @@ class MinHeap {
 
 const MAX_SPEED_KMH = 110; // must be >= any CLASS_SPEED_KMH value
 
+export type TransportMode = 'car' | 'bicycle' | 'foot';
+
 /**
  * A* over the routing graph. Heuristic: straight-line distance at max speed,
  * which is admissible, so results are optimal for our cost model.
+ * When mode is provided, only edges accessible to that transport mode are used.
  */
 export function findPath(
   g: RoutingGraph,
   start: number,
   goal: number,
   maxPops = 9_000_000,
+  mode?: TransportMode,
 ): RoutePath | null {
   const n = g.nodes.length;
   const gScore = new Float64Array(n).fill(Infinity);
@@ -105,9 +110,19 @@ export function findPath(
       const e = g.edges[eid];
       if (e.dead) continue; // pruned
       if (e.from !== cur) continue; // stale adjacency after pruning
+      // Filter by transport mode if specified.
+      if (mode && !isAccessible(e.cls, mode)) continue;
       const nb = e.to;
       if (closed[nb]) continue;
-      const tentative = gScore[cur] + e.weight;
+      // Recalculate weight based on mode speed if different from stored weight.
+      let edgeWeight = e.weight;
+      if (mode) {
+        const modeSpeed = MODE_SPEED_KMH[mode] ?? 50;
+        const clsSpeed = CLASS_SPEED_KMH[e.cls] ?? modeSpeed;
+        const effectiveSpeed = Math.min(clsSpeed, modeSpeed);
+        edgeWeight = (e.lengthM / 1000 / effectiveSpeed) * 3600;
+      }
+      const tentative = gScore[cur] + edgeWeight;
       if (tentative < gScore[nb]) {
         gScore[nb] = tentative;
         cameFromEdge[nb] = eid;

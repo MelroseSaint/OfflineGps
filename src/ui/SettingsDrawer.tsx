@@ -208,6 +208,60 @@ export default function SettingsDrawer(): ReactNode {
           )}
         </section>
 
+        {/* Saved places */}
+        <section>
+          <h3>Saved places</h3>
+          <p className="hint">
+            Save frequently used locations for quick route planning.
+          </p>
+          <div className="saved-places-list">
+            {st.savedPlaces.length === 0 && (
+              <div className="hint">No saved places yet. Search for a location and long-press to save it.</div>
+            )}
+            {st.savedPlaces.map((p) => (
+              <div key={p.id} className="saved-place-item">
+                <span style={{ fontSize: '18px' }}>{p.label === 'Home' ? '🏠' : p.label === 'Work' ? '💼' : '📍'}</span>
+                <div style={{ flex: 1 }}>
+                  <div className="place-label">{p.label}</div>
+                  {p.address && <div className="place-addr">{p.address}</div>}
+                </div>
+                <button
+                  className="place-delete"
+                  onClick={() => {
+                    settings.update({
+                      savedPlaces: st.savedPlaces.filter((x) => x.id !== p.id),
+                    });
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            className="ghost full"
+            style={{ marginTop: '8px' }}
+            onClick={() => {
+              const label = prompt('Label for this place (e.g. Home, Work, Gym):');
+              if (!label) return;
+              const fix = appStore.get().fix;
+              if (!fix) {
+                alert('GPS not available. Move to the location you want to save first.');
+                return;
+              }
+              const newPlace = {
+                id: `place-${Date.now()}`,
+                label,
+                lat: fix.lat,
+                lng: fix.lng,
+              };
+              settings.update({ savedPlaces: [...st.savedPlaces, newPlace] });
+            }}
+          >
+            Save current location
+          </button>
+        </section>
+
         {/* Units + privacy */}
         <section>
           <h3>Preferences</h3>

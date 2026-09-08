@@ -41,6 +41,7 @@ export interface RouteMsg {
   origin: LngLat;
   dest: LngLat;
   snapMaxM?: number;
+  mode?: 'car' | 'bicycle' | 'foot';
 }
 export interface PruneMsg {
   type: 'prune';
@@ -185,7 +186,7 @@ self.onmessage = (ev: MessageEvent<RouterRequest>) => {
     }
     // Auto-prune under memory pressure, keeping both ends of this request.
     if (graph.edges.length > MAX_EDGES) pruneAround(msg.origin, AUTO_PRUNE_RADIUS_M, msg.dest);
-    const path = findPath(graph, o.node, d.node);
+    const path = findPath(graph, o.node, d.node, undefined, msg.mode);
     if (!path) {
       (self as unknown as Worker).postMessage({
         type: 'route',

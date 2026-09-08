@@ -1,11 +1,77 @@
 import { appStore, clearRoute, clearSelection, planFromSelection, startNavigation, stopNavigation, useStore } from '../app/state';
 import { formatDistance, formatDuration, formatEta } from '../lib/format';
+import { settings, type TransportMode, type SavedPlace } from '../lib/settings';
+import type { SearchResult } from '../lib/types';
 
 const PHASE_LABEL: Record<string, string> = {
   coarse: 'Downloading trip map data…',
   corridor: 'Caching the route corridor…',
   done: 'Ready',
 };
+
+const MODE_ICONS: Record<TransportMode, string> = {
+  car: '🚗',
+  bicycle: '🚲',
+  foot: '🚶',
+};
+
+const MODE_LABELS: Record<TransportMode, string> = {
+  car: 'Driving',
+  bicycle: 'Cycling',
+  foot: 'Walking',
+};
+
+function ModeSelector(): React.ReactNode {
+  const stg = useStore(settings.store);
+  const mode = stg.transportMode;
+
+  return (
+    <div className="mode-selector">
+      {(['car', 'bicycle', 'foot'] as TransportMode[]).map((m) => (
+        <button
+          key={m}
+          className={`mode-btn ${m === mode ? 'mode-active' : ''}`}
+          onClick={() => settings.update({ transportMode: m })}
+          title={MODE_LABELS[m]}
+        >
+          <span className="mode-icon">{MODE_ICONS[m]}</span>
+          <span className="mode-label">{MODE_LABELS[m]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SavedPlacesRow(): React.ReactNode {
+  const stg = useStore(settings.store);
+  const places = stg.savedPlaces;
+
+  if (places.length === 0) return null;
+
+  return (
+    <div className="saved-places-row">
+      {places.map((p) => (
+        <button
+          key={p.id}
+          className="saved-place-chip"
+          onClick={() => {
+            const result: SearchResult = {
+              id: p.id,
+              name: p.label,
+              detail: p.address,
+              lat: p.lat,
+              lng: p.lng,
+              source: 'local',
+            };
+            appStore.set({ selected: result, panel: 'none' });
+          }}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function RouteSheet(): React.ReactNode {
   const s = useStore(appStore);
@@ -41,6 +107,8 @@ export default function RouteSheet(): React.ReactNode {
           </div>
         </div>
         {s.selected.detail && <div className="route-sub">{s.selected.detail}</div>}
+        <ModeSelector />
+        <SavedPlacesRow />
         <div className="row-buttons">
           <button className="ghost" onClick={clearSelection}>
             Close
@@ -72,6 +140,7 @@ export default function RouteSheet(): React.ReactNode {
   if (!s.route) return null;
   const destName = s.routeDest ?? s.selected?.name ?? 'Destination';
   const originLabel = s.origin?.name ?? 'My location';
+  const mode = settings.get().transportMode;
 
   return (
     <div className="sheet route-sheet">
@@ -87,6 +156,7 @@ export default function RouteSheet(): React.ReactNode {
       </div>
       <div className="route-stats">
         <div>
+          <span className="route-mode-badge">{MODE_ICONS[mode]} {MODE_LABELS[mode]}</span>
           <b>{formatDuration(s.route.durationS)}</b>
           <span> · {formatDistance(s.route.distanceM, 'metric')} · ETA {formatEta(s.route.durationS)}</span>
         </div>

@@ -26,9 +26,48 @@ export const CLASS_SPEED_KMH: Record<string, number> = {
   steps: 3,
 };
 
-/** Whether a class is drivable (excludes paths, steps, piers, raceways). */
+/** Which transport modes can use this road class. */
+export const CLASS_MODES: Record<string, ('car' | 'bicycle' | 'foot')[]> = {
+  motorway: ['car'],
+  motorway_link: ['car'],
+  trunk: ['car'],
+  trunk_link: ['car'],
+  primary: ['car', 'bicycle'],
+  primary_link: ['car', 'bicycle'],
+  secondary: ['car', 'bicycle'],
+  secondary_link: ['car', 'bicycle'],
+  tertiary: ['car', 'bicycle'],
+  tertiary_link: ['car', 'bicycle'],
+  minor: ['car', 'bicycle', 'foot'],
+  unclassified: ['car', 'bicycle', 'foot'],
+  residential: ['car', 'bicycle', 'foot'],
+  living_street: ['car', 'bicycle', 'foot'],
+  service: ['car', 'bicycle', 'foot'],
+  track: ['car', 'bicycle', 'foot'],
+  pedestrian: ['foot'],
+  footway: ['foot'],
+  path: ['bicycle', 'foot'],
+  cycleway: ['bicycle'],
+  steps: ['foot'],
+};
+
+/** Speed defaults by mode (km/h) when CLASS_SPEED_KMH is not specific enough. */
+export const MODE_SPEED_KMH: Record<string, number> = {
+  car: 50,
+  bicycle: 15,
+  foot: 5,
+};
+
+/** Whether a class can be used by the given transport mode. */
+export function isAccessible(cls: string, mode: 'car' | 'bicycle' | 'foot'): boolean {
+  const modes = CLASS_MODES[cls];
+  if (!modes) return false;
+  return modes.includes(mode);
+}
+
+/** Legacy: whether a class is drivable (for backward compat). */
 export function isDrivable(cls: string): boolean {
-  return cls in CLASS_SPEED_KMH && !['pedestrian', 'footway', 'path', 'steps', 'pier', 'raceway'].includes(cls);
+  return isAccessible(cls, 'car');
 }
 
 export type Oneway = 0 | 1 | -1;
